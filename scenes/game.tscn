@@ -1,8 +1,18 @@
-[gd_scene load_steps=2 format=3 uid="uid://p8mun51i70r4"]
+[gd_scene load_steps=5 format=3 uid="uid://p8mun51i70r4"]
 
+[ext_resource type="Script" path="res://scripts/Game.cs" id="1_j8wp2"]
+[ext_resource type="Texture2D" uid="uid://chx3uk0mdtkc" path="res://assets/cards/ace_of_clubs.png" id="2_7dqd6"]
 [ext_resource type="Script" path="res://scripts/Hand.cs" id="2_575kr"]
+[ext_resource type="Script" path="res://scripts/PlayArea.cs" id="2_fkaxo"]
 
 [node name="Game" type="Node"]
+script = ExtResource("1_j8wp2")
 
 [node name="Hand" type="Node" parent="."]
 script = ExtResource("2_575kr")
+
+[node name="PlayArea" type="Sprite2D" parent="."]
+position = Vector2(1545, 928)
+scale = Vector2(0.716, 0.707989)
+texture = ExtResource("2_7dqd6")
+script = ExtResource("2_fkaxo")
