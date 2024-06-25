@@ -1,17 +1,22 @@
 import socket
 from threading import Thread
-import random
+import json
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(("127.0.0.1", 7878))
 server.listen(4)
+clients = []
 print("listening for connection")
 
 def process_client_messages(clnt):
-    message = "hello"
+    clients.append(clnt)
     while True:
         try:
-            clnt.sendall(message.encode())
+            data = clnt.recv(2048).decode()
+            if data.startswith("play"):
+                for client in clients:
+                    if client != clnt:
+                        client.sendall(data.encode())
         except:
             break
 

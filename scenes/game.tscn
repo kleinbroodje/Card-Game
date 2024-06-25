@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://p8mun51i70r4"]
 
-[ext_resource type="Script" path="res://scripts/Game.cs" id="1_j8wp2"]
+[ext_resource type="Script" path="res://scripts/Client.cs" id="1_j8wp2"]
 [ext_resource type="Texture2D" uid="uid://chx3uk0mdtkc" path="res://assets/cards/ace_of_clubs.png" id="2_7dqd6"]
 [ext_resource type="Script" path="res://scripts/Hand.cs" id="2_575kr"]
 [ext_resource type="Script" path="res://scripts/PlayArea.cs" id="2_fkaxo"]
