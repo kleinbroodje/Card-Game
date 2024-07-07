@@ -1,9 +1,11 @@
-[gd_scene load_steps=5 format=3 uid="uid://p8mun51i70r4"]
+[gd_scene load_steps=7 format=3 uid="uid://p8mun51i70r4"]
 
 [ext_resource type="Script" path="res://scripts/Client.cs" id="1_j8wp2"]
 [ext_resource type="Texture2D" uid="uid://chx3uk0mdtkc" path="res://assets/cards/ace_of_clubs.png" id="2_7dqd6"]
 [ext_resource type="Script" path="res://scripts/Hand.cs" id="2_575kr"]
 [ext_resource type="Script" path="res://scripts/PlayArea.cs" id="2_fkaxo"]
+[ext_resource type="Texture2D" uid="uid://cipckuej55uii" path="res://assets/background.jpg" id="5_lxnl3"]
+[ext_resource type="AudioStream" uid="uid://cl2ofwwmsqfbw" path="res://assets/MainMenu.mp3" id="6_grors"]
 
 [node name="Game" type="Node"]
 script = ExtResource("1_j8wp2")
@@ -12,7 +14,16 @@ script = ExtResource("1_j8wp2")
 script = ExtResource("2_575kr")
 
 [node name="PlayArea" type="Sprite2D" parent="."]
-position = Vector2(1545, 928)
+position = Vector2(1695, 987)
 scale = Vector2(0.716, 0.707989)
 texture = ExtResource("2_7dqd6")
 script = ExtResource("2_fkaxo")
+
+[node name="Background" type="Sprite2D" parent="."]
+z_index = -2
+position = Vector2(1717, 1098)
+scale = Vector2(5.57311, 6.0934)
+texture = ExtResource("5_lxnl3")
+
+[node name="MainMenuMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_grors")

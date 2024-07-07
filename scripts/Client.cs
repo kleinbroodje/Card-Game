@@ -33,8 +33,12 @@ public partial class Client : Node
 	}
 
 	//process server requests 
-    public override async void _Process(double delta)
+    public override void _Process(double delta)
 	{
+		if (GetNode<AudioStreamPlayer>("MainMenuMusic").Playing == false)
+		{
+			GetNode<AudioStreamPlayer>("MainMenuMusic").Play();
+		}
 		client.Poll();
 		if (!connected) 	
 		{
@@ -45,9 +49,9 @@ public partial class Client : Node
 			}
 		}
 
-		var bytes = client.GetAvailableBytes();
-		dataRaw = client.GetPartialData(bytes);
-		data = System.Text.Encoding.UTF8.GetString((byte[])dataRaw[1]);
+		//var bytes = client.GetAvailableBytes();
+		//dataRaw = client.GetPartialData(bytes);
+		//data = System.Text.Encoding.UTF8.GetString((byte[])dataRaw[1]);
 	}
 
 }	

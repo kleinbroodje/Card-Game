@@ -1,91 +1,176 @@
-#nullable enable
-
 using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 
-public partial class Card : Sprite2D
+public partial class Card : TextureButton
 {
-	public static List<Card> selectedQueue = new List<Card>();
+	public static Card draggedCard; 
 	public Suit suit;
 	public Value value;
 	public float xPos;
 	public float yPos;
-	public float originalYPos;
-	public float yMax;
 	public string cardName;
+	bool dragging = false;	
+	Vector2 mouseOffset; 
+	float scaleSize = 0.75f;
+	Tween tweenHover;
+	Tween tweenSelect;
+	Vector2 startMousePos;
+	bool selected = false;
 	
 	public Card(Value value, Suit suit, float xPos, float yPos)
 	{
 		this.suit = suit;
 		this.value = value;
-		this.xPos = xPos;
 		this.yPos = yPos;	
 		cardName = $"{this.value}_of_{this.suit}";
-		originalYPos = yPos;
-		yMax = originalYPos;
-		Texture = GD.Load<Texture2D>($"res://assets/cards/{value}_of_{suit}.png");
-		Position = new Vector2(xPos, yPos);
-		Scale = new Vector2(0.75F, 0.75F);
-		ZIndex = 6;
+		TextureNormal = GD.Load<Texture2D>($"res://assets/cards/{cardName}.png");
 	}
 
-	//adding cards to selectedQueue when clicked
-	public override void _Input(InputEvent @event)
-	{
-    	if (@event is InputEventMouseButton mouseEvent && mouseEvent.IsPressed() && mouseEvent.ButtonIndex == MouseButton.Left && !PlayArea.lastPlayedCards.Values.Contains(cardName))
-    	{
-			if (GetRect().HasPoint(ToLocal(mouseEvent.GlobalPosition)) && !Hand.selectedCards.Contains(this))
+    public override void _Ready()
+    {
+		Scale = new Vector2(scaleSize, scaleSize);
+		PivotOffset = Size/2;
+
+		var button = GetNode<TextureButton>(".");
+		button.ButtonDown += OnButtonDown;
+		button.ButtonUp += OnButtonUp;
+		button.MouseEntered += OnMouseEntered;
+		button.MouseExited += OnMouseExited;
+    }
+
+	private void OnButtonDown()
+    {
+		startMousePos = GetViewport().GetMousePosition();
+
+		PivotOffset = new Vector2(0, 0);
+		mouseOffset = GlobalPosition - GetViewport().GetMousePosition();
+		PivotOffset = Size/2;
+		
+		if (tweenHover != null && tweenHover.IsRunning())
 			{
-				selectedQueue.Add(this);
+				tweenHover.Kill();
 			}
-
-    	}
-	}
-
-	public void PopUp()
-	{
-		yMax = originalYPos - 120;
-	}
-
-	public void DropDown()
-	{
-		yMax = originalYPos;
-	}
-
-	public void Update()
-	{
-		if(GetParent() == GetNode("/root/Game/Hand"))
-			//getting position of mouse for hover
-			yPos += (yMax - yPos) * 0.2F;
-			if (GetRect().HasPoint(ToLocal(GetViewport().GetMousePosition())) && !Hand.selectedCards.Contains(this))
+		if (tweenSelect != null && tweenSelect.IsRunning())
 			{
-				Hand.currentHoveringCards.Add(this);
-			} 
+				tweenSelect.Kill();
+			}
+		Scale *= new Vector2(1.13f, 1.13f);
+
+		draggedCard = this;
+		dragging = true;
+
+	}
+	 
+	private void OnButtonUp()
+	{
+
+		draggedCard = null;
+		dragging = false;
+
+		Scale = new Vector2(scaleSize, scaleSize);
+
+		var selectForgiveness = startMousePos-GetViewport().GetMousePosition();
+		if (selectForgiveness < new Vector2(10, 10) && selectForgiveness > new Vector2(-10, -10))
+		{	
+			if (selected)
+			{
+				selected = false;
+			}
 			else
 			{
-				DropDown();
+				selected = true;
 			}
-			if (!Hand.selectedCards.Contains(this))
-			{
-				Rotation = 0; 
-				ZIndex = 6;
-				Position = new Vector2(xPos, yPos);
+		}
+	}
 
+    private void OnMouseEntered()
+    {
+		if (!dragging)
+		{
+			if (tweenHover != null && tweenHover.IsRunning())
+			{
+				tweenHover.Kill();
+			}
+			
+			tweenHover = CreateTween().SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Elastic);
+			tweenHover.TweenProperty(this, "scale", new Vector2(scaleSize * 1.04f, scaleSize * 1.04f), 0.5f);
+		}
+	}
+
+	private void OnMouseExited()
+	{
+		if (!dragging)
+		{
+
+			if (tweenHover != null && tweenHover.IsRunning())
+			{
+				tweenHover.Kill();
+			}
+
+			tweenHover = CreateTween().SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Elastic);
+			tweenHover.TweenProperty(this, "scale", new Vector2(scaleSize, scaleSize), 0.5f);
+		}
+
+	}
+
+	public override void _Process(double delta)
+	{
+		var screenSize = GetViewportRect().Size;
+      	float handRatio = 0.5f;
+		if (GetNode("..").GetChildren().Count > 1)
+		{
+			handRatio = GetIndex()/(float)(GetNode("..").GetChildren().Count-1f);
+		}
+		xPos = screenSize.X/2 - Size.X/2 + (handRatio - 0.5f) * (GetNode("..").GetChildren().Count-1) *  Size.X * scaleSize * 3/5 ;
+
+		if (dragging)
+		{
+			var offset = startMousePos-GetViewport().GetMousePosition();
+			if (offset > new Vector2(10, 10) || offset < new Vector2(-10, -10))
+			{
+				ZIndex = 13;
+			}
+			
+			GlobalPosition = GetViewport().GetMousePosition() + mouseOffset;
+
+		}
+		else
+		{
+			if (!selected)
+			{ 
+				ZIndex = GetIndex();
+
+				if (tweenSelect != null && tweenSelect.IsRunning())
+				{
+					tweenSelect.Kill();
+				}
+				tweenSelect = CreateTween().SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Expo);
+				tweenSelect.TweenProperty(this, "position", new Vector2(xPos, yPos), 0.5f);
+			}
+			else
+			{
+				ZIndex = GetIndex();
+
+				if (tweenSelect != null && tweenSelect.IsRunning())
+				{
+					tweenSelect.Kill();
+				}
+				tweenSelect = CreateTween().SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Quart);
+				tweenSelect.TweenProperty(this, "position", new Vector2(xPos, yPos - 100), 0.5f);
+			}
 		}
 	}
 }
 
 public partial class Hand : Node
 {
-	// Called when the node enters the scene tree for the first time.
 	public static List<Card> selectedCards = new List<Card>();
-	public static List<Card> currentHoveringCards = new List<Card>();
 
 	public override void _Ready()
 	{ 
-		#nullable disable
 		Array values = Enum.GetValues(typeof(Value));
 		Array suits = Enum.GetValues(typeof(Suit));
 		float x = 525;
@@ -94,104 +179,32 @@ public partial class Hand : Node
 			Random randomValue = new Random();
 			Random randomSuit = new Random();
 
-			Card newCard = new Card((Value)values.GetValue(randomValue.Next(values.Length)), (Suit)suits.GetValue(randomSuit.Next(suits.Length)), x, 2100);
+			Card newCard = new Card((Value)values.GetValue(randomValue.Next(values.Length)), (Suit)suits.GetValue(randomSuit.Next(suits.Length)), x, 1400);
 			AddChild(newCard);
 
 			x += 200;
 		}
-		#nullable enable
-	}
-
-	public override void _Input(InputEvent @event)
-	{
-    	if (@event is InputEventMouseButton mouseEvent && mouseEvent.IsPressed() && mouseEvent.ButtonIndex == MouseButton.Right && selectedCards.Count != 0)
-    	{	
-			selectedCards.RemoveAt(selectedCards.Count - 1);
-    	}
 	}
 
     // Called every frame. 'delta' is the elapsed time since the previous frame.
     public override void _Process(double delta)
     {
-    	currentHoveringCards.Clear();
-		
-		//checking which card is on top of other when selecting
-		if (Card.selectedQueue.Any())
-		{
-			float currentMax = 0;
-			Card? currentCard = null;
-			foreach (Card card in Card.selectedQueue)
-			{
-				if (selectedCards.Contains(card) == false)
-				{
-					if (card.xPos > currentMax)
-					{
-						currentMax = card.xPos;
-						currentCard = card;
-					}
-				}
-			}
-			
-			if (currentCard != null && selectedCards.Count < 5)
-			{
-				selectedCards.Add(currentCard);
-			}
-			Card.selectedQueue.Clear();
-		}
-
-		if (selectedCards.Any())
-		{
-			float offsetX = 0;
-			foreach (Card card in selectedCards)
-			{	
-				card.ZIndex = selectedCards.IndexOf(card) + 1;
-
-				float handRatio = 0.5F;
-				if (selectedCards.Count > 1)
-				{
-					handRatio = selectedCards.IndexOf(card)/((float)selectedCards.Count-1);
-				}
-				
-				float heightMult = -4 * handRatio * handRatio + 4 * handRatio;
-				if (selectedCards.Count == 1)
-				{
-					heightMult = 0;
-				}
-
-				float angleMult = 2/(1+(float)Math.Pow(Math.E, -5*(handRatio-0.5)))-1;
-
-				card.Position = DisplayServer.MouseGetPosition() + new Vector2(250 *(handRatio - 0.5F), -50 * heightMult); 
-				card.RotationDegrees = angleMult * 20;
-				offsetX += 100; 
-				
-			}
-		}
-
 		foreach (Card card in GetChildren())
 		{
-			card.Update();
-		}
-		
-		//moving cards when mouse hovers over
-		if (currentHoveringCards.Count == 2)
-		{
-			// currentHoveringCards.Last().PopUp();
-			if (currentHoveringCards[0].xPos >= currentHoveringCards[1].xPos)
+			if (Card.draggedCard != null)
 			{
-				currentHoveringCards[0].PopUp();
-				currentHoveringCards[1].DropDown();
-			} 
-
-			else
-			{
-				currentHoveringCards[1].PopUp();
-				currentHoveringCards[0].DropDown();
+				if (Card.draggedCard.Position.X > card.Position.X && card.GetIndex() > Card.draggedCard.GetIndex())
+				{
+					MoveChild(card, card.GetIndex()-1);
+					MoveChild(Card.draggedCard, card.GetIndex()+1);
+	
+				}
+				if (Card.draggedCard.Position.X < card.Position.X && card.GetIndex() < Card.draggedCard.GetIndex())
+				{
+					MoveChild(card, card.GetIndex()+1);
+					MoveChild(Card.draggedCard, card.GetIndex()-1);
+				}
 			}
-		} 
-
-		else if (currentHoveringCards.Count == 1)
-		{
-			currentHoveringCards[0].PopUp();
 		}
 	}
 }
